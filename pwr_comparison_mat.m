@@ -88,6 +88,6 @@ for mu = mus
 end
 toc
 
-save("pwr_comparison_contour.mat","powerourmat","powerfrobmat")
+save("pwr_comparison.mat","powerourmat","powerfrobmat")
 
 

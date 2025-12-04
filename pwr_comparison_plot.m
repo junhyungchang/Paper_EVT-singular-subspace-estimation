@@ -2,7 +2,7 @@
 r = 5; % Example value for r (adjust as needed)
 n_len = 20;
 nmax =400; nmin =20;
-load("xpowermat5.mat","powerourmat","powerfrobmat");
+load("pwr_comparison.mat","powerourmat","powerfrobmat");
 powerourmat = sortrows(powerourmat, [-1,1]); % change the row orders for inverted plot
 powerfrobmat = sortrows(powerfrobmat, [-1,1]); 
 
