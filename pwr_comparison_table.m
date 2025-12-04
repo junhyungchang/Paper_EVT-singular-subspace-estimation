@@ -1,0 +1,75 @@
+clear; clc
+m = 8e2;
+reps = 10;
+ns = [20, 1e2, 4e2, 7e2, 1e3];
+r = 1;
+alpha= 0.05;
+qnorm = norminv(1-alpha);
+qgum = gumbel_quantile(1-alpha);
+powerfrobvec = zeros(length(ns),1);
+powerourvec = powerfrobvec;
+index = 0;
+for n = ns
+    n1 = n;
+    n2 = 1*n1;
+    c = n1/n2;
+    index = index +1;
+    %%%%%%%%%%%%%Create random test signal matrix%%%%%%%%%%%%%%
+    U = ones(n1,r)/sqrt(n1);
+    U0 = U;
+    U(n1) = -U(n1);
+    V = ones(n2,r)/sqrt(n2);
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    sig = 1; % iid case
+    Sdiag = linspace(3*sig*sqrt(n1)*log(n1)^(2/3),1.2*sig*sqrt(n1)*log(n1)^(2/3), r);  % weak signal
+%     Sdiag = linspace(3*n1^(4/5),n1^(4/5), r);  % strong signal
+    sr = Sdiag(r);
+    smin = Sdiag(1);
+    S = diag(Sdiag);
+    M = U*S*V';
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    fprintf("\n____Progress Bar____\n")
+    powerfrob = zeros(reps,1);
+    powerour = powerfrob;
+    for k = 1:reps
+        Tfrobs = zeros(m,1);
+        tstats = zeros(m,1);
+        for j = 1:m
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            E = normrnd(0, sig, [n1,n2]); % iid case
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%
+            Mhat = M + E;
+            [Uhat,Shat,Vhat] = svds(Mhat,r,'largest','MaxIterations', 1000);  
+            Shat = diag(Shat);
+            Shat = sqrt((Shat.^2 - (1+c)*sig^2*n2 + sqrt(((1+c)*sig^2*n2-Shat.^2).^2 - 4*c*sig^4*n2^2))/2);
+            Shat = diag(Shat);
+            %%%%%%%%%%%% Frobenius norm test%%%%%%%%%%%%%%
+            Tfrob1 = norm(Uhat*Uhat'-U0*U0',"fro")^2+norm(Vhat*Vhat'-V*V',"fro")^2;
+            Tfrobs(j) = (Tfrob1 - 2*(n1+n2-2*r)*norm(inv(Shat),"fro")^2)/(sqrt(8*(n1+n2-2*r))*norm(inv(Shat)^2,"fro"));
+            %%%%%%%%%%%%Our test%%%%%%%%%%%%%%%%%%%
+            Hu = Uhat'*U0;
+            [X,~,Y] = svd(Hu);
+            Ru = X*Y';
+            target = tinorm(Uhat*Ru - U0);
+            Splugin = diag(Shat);
+            lams = sort(2*sig^2./Splugin.^2,"descend");
+            lam1 = lams(1);
+            lamrem = lams(2:r);
+            lamfactor = 1 - lamrem/lam1;
+            lamfactor = prod(lamfactor);
+            lamfactor = sqrt(lamfactor);
+            an = sqrt(lam1)/(2*sqrt(log(2*n)));
+            bn = sqrt(lam1*log(2*n)) - (log(log(2*n))+log(4*pi))*an/2 ;
+            tstats(j) = (target -bn)/an + log(lamfactor);
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        end
+        powerfrob(k) = length(Tfrobs(Tfrobs>=qnorm))/m;
+        powerour(k) = length(tstats(tstats>=qgum))/m;
+        fprintf("11")
+    end    
+    powerfrobvec(index) = mean(powerfrob);
+    powerourvec(index) = mean(powerour);
+end
+
+powerfrobvec
+powerourvec
